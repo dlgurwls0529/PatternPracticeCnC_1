@@ -208,5 +208,36 @@ A의 생성자가 private으로 수정되어 new를 사용할 수 없는 상황�
 
 전체적인 클래스 관계를 쓰면 다음과 같다.
 
-
- 
+    <domain.TestField.interface>
+    + getFieldValueToString() : String
+    + getFieldName() : String
+    + getFieldToHashMap() : HashMap<String, Object>
+    
+    <domain.FieldComposite.interface>
+    + addField(TestField) : FieldComposite    // 메소드 체이닝
+    + removeField(String) : void
+    + build() : TestField
+    
+    <domain.DefaultField.abstract class implements TestField>
+    - fieldName : String
+    
+    <domain.FieldBundle.class extends DefaultTestField implements FieldComposite>
+    - map : HashMap<String, TestField>
+    
+    <domain.PersonalField.class extends DefaultTestField implements FieldComposite>
+    - map : HashMap<String, TestField>
+    
+    <domain.FieldBundle.class extends DefaultTestField>
+    - level : int
+    
+    <domain.MarkField.class extends DefaultTestField>
+    - arrMark : int[]
+    
+    <domain.NameField.class extends DefaultTestField>
+    - name : String
+    
+    <domain.NoField.class extends DefaultTestField>
+    - no : int
+    
+    
+    
