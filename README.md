@@ -95,11 +95,118 @@ A의 생성자가 private으로 수정되어 new를 사용할 수 없는 상황�
 - 재활용이 어렵다. 재활용을 할려면 추가 요구에 따른 경우의 수만큼 서브클래싱이 필요하게 된다. 확장을 하더라도 완전 같은 상황이 아니면 재활용이 힘들다.  
 - 서브클래스가 너무 많아진다. 시험 데이터가 많아짐에 따라서 팩토리 클래스와 해당 데이터가 추가된 클래스를 서브클래싱해야 한다.  
 
-두 번째로 생각했던 것은 브릿지 패턴과 컴포지트 패턴을 같이 활용하는 것이었다. 컴포지트 패턴을 통해서 필드를 동적인 트리 형태로 구현하고(메인 계층), 해당 데이터를 읽고 쓰는 방식(엑셀이냐 데이터베이스냐 JSON이냐 등, 서브 계층)을 연결하는 브릿지 패턴을 적용하고자 했다. 하지만, 이 클래스는 단순히 시험 데이터를 감싸는 도메인이지 결코 읽고 쓰는 책임까지 맡을 필요는 없었다. 그래서 읽고 쓰는 방법에 대한 계층은 Repository에 넘기기로 했다. 
+두 번째로 생각했던 것은 브릿지 패턴과 컴포지트 패턴을 같이 활용하는 것이었다. 컴포지트 패턴을 통해서 필드를 트리 형태로 구현하고(메인 계층), 해당 데이터를 읽고 쓰는 방식(엑셀이냐 데이터베이스냐 JSON이냐 등, 서브 계층)을 연결하는 브릿지 패턴을 적용하고자 했다. 하지만, 이 클래스는 단순히 시험 데이터를 감싸는 도메인이지 결코 읽고 쓰는 책임까지 맡을 필요는 없었다. 그래서 읽고 쓰는 방법에 대한 계층은 Repository에 넘기기로 했다. 
 
-최종적으로는 컴포지트 패턴만을 적용하게 되었다.
+최종적으로는 컴포지트 패턴만을 적용하게 되었다. 데이터의 세부 컬럼들이 트리 구조로 연결되어있기도 하고, OCP를 만족하는 기능 확장이 가능하며 서브클래싱이 팩토리 메소드 패턴보다 덜 하기 때문이다.  
 
+    PersonalField personalField = new PersonalField();
+    personalField.addField(new NameField("이혁진"));
+    personalField.addField(new NoField(1));
 
+    FieldBundle fieldBundle = new FieldBundle();
+    fieldBundle.addField(new MarkField(new int[]{3, 4, 5, 6, 9}));
+    fieldBundle.addField(personalField);
+
+    HashMap<String, Object> hashMap = fieldBundle.getFieldToHashMap();
+
+결과만 보면 이렇게 쓸 수 있다. 만약, 인적 사항에 Level 필드가 추가된다면, Level 클래스를 추상 클래스인 DefaultField를 상속한 뒤,
+
+    PersonalField personalField = new PersonalField();
+    personalField.addField(new NameField("이혁진"));
+    personalField.addField(new NoField(1));
+        
+    // personalField.addField(new LevelField(7));
+
+    FieldBundle fieldBundle = new FieldBundle();
+    fieldBundle.addField(new MarkField(new int[]{3, 4, 5, 6, 9}));
+    fieldBundle.addField(personalField);
+
+    HashMap<String, Object> hashMap = fieldBundle.getFieldToHashMap();
+
+"personalField.addField(new LevelField(7));" 이거 한 줄만 추가해주면 된다. 만약 TestData 클래스 하나에 모든 필드를 다 넣었다면, 필드 변화 시에 그것에 의존하는 다른 코드가 그럴 때마다 변하겠지만, 위에서 보았듯이 개선된 코드는 기존의 로직을 유지한 채로 한줄과 클래스 하나만 추가해서 끝낼 수 있다.  
+
+만약 "시험 점수의 유형별 합계를 추가해라" 라는 요구가 추가된다면, 트리 구조를 활용해 쉽게 대응할 수 있다.
+
+    ScoreOfCategoryField scoreOfCategoryField = new ScoreOfCategoryField();
+    scoreOfCategoryField.addField(new LcGenScore(12));
+    scoreOfCategoryField.addField(new LcDedScore(12));
+    scoreOfCategoryField.addField(new GrScore(12));
+    scoreOfCategoryField.addField(new RcGenScore(12));
+    scoreOfCategoryField.addField(new RcDedScore(12));
+    scoreOfCategoryField.addField(new RcSatScore(12));
     
+    fieldBundle.addField(scoreOfCategoryField);
+    HashMap<String, Object> hashMap = fieldBundle.getFieldToHashMap();
 
+하지만, 생성 과저이 지나치게 복잡하고 많은 줄을 소모한다. 이 경우에는 addField가 자기 자신을 리턴하도록 하여 생성을 편리하게 한다. (메소드 체이닝 : https://my-devblog.tistory.com/5) 이를 활용해서 빌더 패턴 역시 고려할 수 있지만, 객체 생성 절차를 필드 주입과 분리하여 얻을 수 있는 이점이 별로 없다 생각하여 메소드 체이닝만을 활용하였다.
+
+    TestField fieldBundle = new FieldBundle()
+                .addField(new MarkField(new int[]{3, 4, 5, 6, 9}))
+                .addField(
+                        new PersonalField()
+                                .addField(new NameField("이혁진"))
+                                .addField(new NoField(1))
+                                .addField(new LevelField(7))
+                                .build()
+                )
+                .build();
+                
+사실 별 차이 없지만, 조금 더 편한 느낌이다. 다음으로 진행할 것은 Repository이다. 레포지토리에서 예상되는 변화는 해당 레포지토리가 메모리에 저장되냐, DB에 저장되냐, 엑셀에 저장되느냐 하는 저장 방식에 대한 것이다. 이에, 인터페이스를 우선적으로 선언한다.  
+
+    public interface TestDataRepository {
+
+        public void save(TestField testField);
+        List<TestField> findAll();
+    }
     
+이후에 
+
+    public class MemoryTestDataRepository implements TestDataRepository {
+
+        private static final List<TestField> list = new ArrayList<>();
+
+        @Override
+        public void save(TestField testField) {
+            list.add(testField);
+        }
+
+        @Override
+        public List<TestField> findAll() {
+            return new ArrayList<>(list);
+        }
+    }
+    
+단순히 메모리에 올리는 레포지토리는 이렇게 구현하고, 
+
+    memoryTestDataRepository.save(fieldBundle1);
+    memoryTestDataRepository.save(fieldBundle2);
+    memoryTestDataRepository.save(fieldBundle3);
+    ...
+    List<TestField> list = memoryTestDataRepository.findAll();
+    
+이렇게 쓸 수 있다. 아직은 Service 단이 구현되지 않아서 해당 인터페이스에 의한 다형성 효과는 잘 보기 어렵지만, 이것 때문에 저장 방식이 달라지더라도 같은 방식으로 수정 없이 활용할 수 있을 것이다.
+
+    TestDataRepository testDataRepository = new MemoryTestDataRepository();
+    ...
+    testDataRepository.save(fieldBundle1);
+    testDataRepository.save(fieldBundle2);
+    testDataRepository.save(fieldBundle3);
+    ...
+    List<TestField> list = testDataRepository.findAll();
+    
+    TestDataRepository testDataRepository = new JdbcTestDataRepository();
+    ...
+    testDataRepository.save(fieldBundle1);
+    testDataRepository.save(fieldBundle2);
+    testDataRepository.save(fieldBundle3);
+    ...
+    List<TestField> list = testDataRepository.findAll();
+    
+이렇게 상위타입인 TestDataRepository에 주입하는 인스턴스를 달리해줘도 save와 findAll은 수정 없이 잘 작동한다.  
+
+확장성 있는 구조를 만들었지만, 아직 new를 통해 객체를 주입하는 부분이 매우 거슬린다. 아주 조금이지만 Client가 많아지는 경우 해당 의존 관계의 응집도가 낮아지게 될 수도 있다. 해결하기 위해서는 따로 의존성을 주입해주는 컨테이너 클래스를 만들수도 있겠다. 이건 나중에 생각해보자.  
+
+전체적인 클래스 관계를 쓰면 다음과 같다.
+
+
+ 
