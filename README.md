@@ -239,7 +239,7 @@ A의 생성자가 private으로 수정되어 new를 사용할 수 없는 상황�
     <domain.NoField.class extends DefaultTestField>
     - no : int
     
-전체 코드는 깃허브(https://github.com/dlgurwls0529/PatternPracticeCnC_1.git)에 있다. 
+전체 코드는 깃허브(https://github.com/dlgurwls0529/PatternPracticeCnC_1.git) 에 있다. 
 
 다음에는 해당 코드에 컨테이너로 new를 통해 생성하는 부분을 좀 줄여보고, 로컬 데이터베이스를 활용한 레포지토리를 구현해보겠다.
 
