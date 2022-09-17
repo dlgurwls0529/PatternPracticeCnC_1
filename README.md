@@ -239,5 +239,8 @@ A의 생성자가 private으로 수정되어 new를 사용할 수 없는 상황�
     <domain.NoField.class extends DefaultTestField>
     - no : int
     
-    
-    
+전체 코드는 깃허브(https://github.com/dlgurwls0529/PatternPracticeCnC_1.git)에 있다. 
+
+다음에는 해당 코드에 컨테이너로 new를 통해 생성하는 부분을 좀 줄여보고, 로컬 데이터베이스를 활용한 레포지토리를 구현해보겠다.
+
+처음 디자인 패턴이랑 객체지향 공부할 때는 이걸 어떻게 써야 하나 감이 오지 않아서 재미가 없었는데, 계속 하다보니 느낌이 오는 것도 같아 나름 뿌듯하다. 
